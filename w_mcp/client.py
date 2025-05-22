@@ -1,6 +1,9 @@
 import sys
 from mcp.client.stdio import stdio_client
 from mcp import ClientSession, StdioServerParameters, types
+from pathlib import Path
+sys.path.append(str(Path(__file__).absolute().parent.parent))
+from llm.ollama_facade import OllamaFacade
 
 async def run(pdf_file: str, mcp_server: str):
     server_params = StdioServerParameters(
@@ -14,6 +17,7 @@ async def run(pdf_file: str, mcp_server: str):
         ) as session:
             await session.initialize()
             await session.list_tools()
+            llm = OllamaFacade("llama:3.3")
             apr = await session.call_tool("add_pages", arguments={"pdf_file": pdf_file})
             if not apr.isError and len(apr.content) > 0:
                 title = apr.content[0].text
@@ -21,8 +25,17 @@ async def run(pdf_file: str, mcp_server: str):
                 while len(question) > 0:
                     sr = await session.call_tool("search", arguments={"query": question, "top_results": "10", "simularity": "0.1"})
                     if not sr.isError:
+                        ranked_results = []
                         for r in sr.content:
-                            print(r.text + '\n\n')
+                            ranked_results.append(
+                                {
+                                    "relevance": llm.relevance(question, r.text),
+                                    "result": r.text
+                                }
+                            )
+                        ranked_results.sort(key=lambda result: result["relevance"], reverse=True)
+                        rr = ranked_results if len(ranked_results) <= 6 else ranked_results[:5]
+                        print(llm.ask(question, [ r["result"] for r in rr ]))
                     else:
                         print("cannot search PDF")
                     question = input(f"Do you have another question to ask? ")
