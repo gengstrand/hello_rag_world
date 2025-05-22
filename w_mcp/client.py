@@ -2,14 +2,12 @@ import sys
 from mcp.client.stdio import stdio_client
 from mcp import ClientSession, StdioServerParameters, types
 
-# Create server parameters for stdio connection
-server_params = StdioServerParameters(
-    command="python", 
-    args=["main.py"], 
-    env=None
-)
-
-async def run(pdf_file: str):
+async def run(pdf_file: str, mcp_server: str):
+    server_params = StdioServerParameters(
+        command="python", 
+        args=[mcp_server], 
+        env=None
+    )
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(
             read, write
@@ -34,7 +32,7 @@ async def run(pdf_file: str):
 if __name__ == "__main__":
     import asyncio
 
-    if len(sys.argv) < 2:
-        print("usage: python client.py pdf_file")
+    if len(sys.argv) < 3:
+        print("usage: python client.py pdf_file mcp_server.py")
         sys.exit(-1)
-    asyncio.run(run(sys.argv[1]))
+    asyncio.run(run(sys.argv[1], sys.argv[2]))

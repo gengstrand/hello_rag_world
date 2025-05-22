@@ -2,7 +2,7 @@ from pypdf import PdfReader
 from txtai import Embeddings
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("pdf_search")
+mcp = FastMCP("pdf_search_txtai")
 embeddings = Embeddings(hybrid=True, path="sentence-transformers/nli-mpnet-base-v2")
 data = []
 
