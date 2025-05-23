@@ -6,7 +6,7 @@ class OllamaFacade(LargeLanguageModelFacade):
     def __init__(self, model: str):
         self.llm = OllamaLLM(model=model)
     def relevance(self, question: str, search_result: str) -> float:
-        prompt = """Study the following question and data then return the relevance or liklihood that the supplied data could be used to answer the question. This relevance would be in the form of a floating point number between 0.0 and 1.0 where 0.0 would mean that the data isn't useful at all, 1.0 would indicate that the data is useful with complete certainty, and 0.5 would suggest that the data would just as likely be useful as not. Output as JSON in the specified schema.
+        prompt = """Study the following question and data then return the relevance or liklihood that the supplied data could be used to answer the question. This relevance would be in the form of a floating point number between 0.0 and 1.0 where 0.0 would mean that the data isn't useful at all, 1.0 would indicate that the data is useful with complete certainty, and 0.5 would suggest that the data would just as likely be useful as not. Output as JSON in the specified schema. The response MUST be a valid JSON object and NOTHING else.
 
 **QUESTION**
 %s

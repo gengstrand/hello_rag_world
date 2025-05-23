@@ -17,7 +17,7 @@ async def run(pdf_file: str, mcp_server: str):
         ) as session:
             await session.initialize()
             await session.list_tools()
-            llm = OllamaFacade("llama:3.3")
+            llm = OllamaFacade("llama3.3")
             apr = await session.call_tool("add_pages", arguments={"pdf_file": pdf_file})
             if not apr.isError and len(apr.content) > 0:
                 title = apr.content[0].text
@@ -34,7 +34,7 @@ async def run(pdf_file: str, mcp_server: str):
                                 }
                             )
                         ranked_results.sort(key=lambda result: result["relevance"], reverse=True)
-                        rr = ranked_results if len(ranked_results) <= 6 else ranked_results[:5]
+                        rr = ranked_results if len(ranked_results) <= 5 else ranked_results[:5]
                         print(llm.ask(question, [ r["result"] for r in rr ]))
                     else:
                         print("cannot search PDF")

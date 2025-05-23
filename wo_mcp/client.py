@@ -10,7 +10,7 @@ def run(pdf_file: str, search_facade_module: str, facade_class_name: str):
     c = getattr(m, facade_class_name)
     o = c()
     f = cast(SearchFacade, o)
-    llm = OllamaFacade("llama:3.3")
+    llm = OllamaFacade("llama3.3")
     title = f.add_pages(pdf_file)
     question = input(f"What do you want to know about {title}? ")
     while len(question) > 0:
@@ -24,7 +24,7 @@ def run(pdf_file: str, search_facade_module: str, facade_class_name: str):
                 }
             )
         ranked_results.sort(key=lambda result: result["relevance"], reverse=True)
-        rr = ranked_results if len(ranked_results) <= 6 else ranked_results[:5]
+        rr = ranked_results if len(ranked_results) <= 5 else ranked_results[:5]
         print(llm.ask(question, [ r["result"] for r in rr ]))
         question = input(f"Do you have another question to ask? ")
 
