@@ -1,21 +1,18 @@
-from pypdf import PdfReader
 from txtai import Embeddings
 from search_facade import SearchFacade
+from indexer.indexer_facade import IndexerFacade
 
 class TxtAiFacade(SearchFacade):
-    def __init__(self):
+    def __init__(self, indexer: IndexerFacade):
         self.embeddings = Embeddings(hybrid=True, path="sentence-transformers/nli-mpnet-base-v2")
+        self.indexer = indexer
         self.data = []
 
-    def add_pages(self, pdf_file: str) -> str:
-        reader = PdfReader(pdf_file)
-        metadata = reader.metadata
-        rv = pdf_file
-        if metadata and '/Title' in metadata:
-            rv = metadata['/Title']
-        self.data = [ page.extract_text().replace('\n', ' ') for page in reader.pages ]
+    def add_pages(self) -> str:
+        for doc in self.indexer.documents():
+            self.data.append(doc)
         self.embeddings.index(self.data)
-        return rv
+        return self.indexer.title()
 
     def search(self, query: str, top_results: int, simularity: float) -> list[str]:
         return [ self.data[index] for (index, score) in self.embeddings.search(query, top_results) if score > simularity ]

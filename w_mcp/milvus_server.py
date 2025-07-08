@@ -1,7 +1,10 @@
-from pypdf import PdfReader
+import sys
 from pymilvus import MilvusClient
 from mcp.server.fastmcp import FastMCP
 from sentence_transformers import SentenceTransformer
+from pathlib import Path
+sys.path.append(str(Path(__file__).absolute().parent.parent))
+from indexer.pdf_indexer import PDFIndexer
 
 db_name = "./milvus_pdf.db"
 collection_name = "doc_pages"
@@ -21,19 +24,14 @@ model = SentenceTransformer(model_id)
 @mcp.tool()
 def add_pages(pdf_file: str) -> str:
     global client, collection_name, model
-    reader = PdfReader(pdf_file)
-    metadata = reader.metadata
-    rv = pdf_file
-    if metadata and '/Title' in metadata:
-        rv = metadata['/Title']
+    indexer = PDFIndexer(pdf_file)
     data = []
     pn = 1
-    for page in reader.pages:
-        p = page.extract_text().replace('\n', ' ')
-        data.append({"id": pn, "vector": model.encode(p), "text": p})
+    for doc in indexer.documents:
+        data.append({"id": pn, "vector": model.encode(doc), "text": doc})
         pn += 1
     client.insert(collection_name=collection_name, data=data)
-    return rv
+    return indexer.title
 
 @mcp.tool()
 def search(query: str, top_results: int, simularity: float) -> list[str]:

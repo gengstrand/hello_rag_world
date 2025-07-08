@@ -1,6 +1,9 @@
-from pypdf import PdfReader
+import sys
 from txtai import Embeddings
 from mcp.server.fastmcp import FastMCP
+from pathlib import Path
+sys.path.append(str(Path(__file__).absolute().parent.parent))
+from indexer.pdf_indexer import PDFIndexer
 
 mcp = FastMCP("pdf_search_txtai")
 embeddings = Embeddings(hybrid=True, path="sentence-transformers/nli-mpnet-base-v2")
@@ -9,14 +12,10 @@ data = []
 @mcp.tool()
 def add_pages(pdf_file: str) -> str:
     global embeddings, data
-    reader = PdfReader(pdf_file)
-    metadata = reader.metadata
-    rv = pdf_file
-    if metadata and '/Title' in metadata:
-        rv = metadata['/Title']
-    data = [ page.extract_text().replace('\n', ' ') for page in reader.pages ]
+    indexer = PDFIndexer(pdf_file)
+    data = [ doc for doc in indexer.documents ]
     embeddings.index(data)
-    return rv
+    return indexer.title
 
 @mcp.tool()
 def search(query: str, top_results: int, simularity: float) -> list[str]:

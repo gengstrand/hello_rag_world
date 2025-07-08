@@ -1,10 +1,11 @@
-from pypdf import PdfReader
 from pymilvus import MilvusClient
 from search_facade import SearchFacade
+from indexer.indexer_facade import IndexerFacade
 from sentence_transformers import SentenceTransformer
 
 class MilvusFacade(SearchFacade):
-    def __init__(self):
+    def __init__(self, indexer: IndexerFacade):
+        self.indexer = indexer
         db_name = "./milvus_pdf.db"
         self.collection_name = "doc_pages"
         self.client = MilvusClient(db_name)
@@ -19,20 +20,14 @@ class MilvusFacade(SearchFacade):
         model_id = "sentence-transformers/all-distilroberta-v1"
         self.model = SentenceTransformer(model_id)
 
-    def add_pages(self, pdf_file: str) -> str:
-        reader = PdfReader(pdf_file)
-        metadata = reader.metadata
-        rv = pdf_file
-        if metadata and '/Title' in metadata:
-            rv = metadata['/Title']
+    def add_pages(self) -> str:
         data = []
         pn = 1
-        for page in reader.pages:
-            p = page.extract_text().replace('\n', ' ')
-            data.append({"id": pn, "vector": self.model.encode(p), "text": p})
+        for doc in self.indexer.documents():
+            data.append({"id": pn, "vector": self.model.encode(doc), "text": doc})
             pn += 1
         self.client.insert(collection_name=self.collection_name, data=data)
-        return rv
+        return self.indexer.title()
 
     def search(self, query: str, top_results: int, simularity: float) -> list[str]:
         results = self.client.search(
