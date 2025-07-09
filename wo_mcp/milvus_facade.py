@@ -1,9 +1,21 @@
-from itertools import batched
+import itertools
 
 from pymilvus import MilvusClient
 from search_facade import SearchFacade
 from indexer.indexer_facade import IndexerFacade
 from sentence_transformers import SentenceTransformer
+
+def batch_iterator(iterable, n):
+    """
+    Batches an iterable into chunks of size n.
+    The last batch may be shorter if the iterable's length is not a multiple of n.
+    """
+    it = iter(iterable)
+    while True:
+        batch = tuple(itertools.islice(it, n))
+        if not batch:
+            return
+        yield batch
 
 class MilvusFacade(SearchFacade):
     def __init__(self, indexer: IndexerFacade):
@@ -32,7 +44,7 @@ class MilvusFacade(SearchFacade):
     def add_pages(self) -> str:
         if not self.indexer.is_empty():
             pn = 1
-            for batch in batched(self.indexer.documents(), 100):
+            for batch in batch_iterator(self.indexer.documents(), 100):
                 data = []
                 for doc in batch:
                     data.append({"id": pn, "vector": self.model.encode(doc), "text": doc})
