@@ -1,3 +1,4 @@
+import os
 import sys
 import importlib
 import importlib.util
@@ -32,19 +33,20 @@ class DynamicFacade:
         return rv
 
 class HelloRagClient:
-    def __init__(self, search: SearchFacade, llm: LargeLanguageModelFacade):
+    def __init__(self, search: SearchFacade, llm: LargeLanguageModelFacade, max_results: int = 10):
         self._search = search
         self._llm = llm
+        self._max_results = max_results
 
     def run(self, test_mode: bool = False) -> bool:
         title = self._search.add_pages()
         if test_mode:
-            results = self._search.search("test", 10, 0.1)
+            results = self._search.search("test", 2 * self._max_results, 0.1)
             return len(results) > 0
         else:
             question = input(f"What do you want to know about {title}? ")
             while len(question) > 0:
-                results = self._search.search(question, 10, 0.1)
+                results = self._search.search(question, 2 * self._max_results, 0.1)
                 ranked_results = []
                 for result in results:
                     ranked_results.append(
@@ -54,17 +56,36 @@ class HelloRagClient:
                         }
                     )
                 ranked_results.sort(key=lambda result: result["relevance"], reverse=True)
-                rr = ranked_results if len(ranked_results) <= 5 else ranked_results[:5]
+                rr = ranked_results if len(ranked_results) <= self._max_results else ranked_results[:self._max_results]
                 print(self._llm.ask(question, [ r["result"] for r in rr ]))
                 question = input(f"Do you have another question to ask? ")
             return True
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("usage: python client.py pdf_file module_name class_name")
+        print("usage: python client.py source module_name class_name [max_results]")
         sys.exit(-1)
-    pdf_file = sys.argv[1]
-    index = DynamicFacade('indexer.pdf_indexer', 'PDFIndexer').create(pdf_file)
-    search = DynamicFacade(sys.argv[2], sys.argv[3]).create(index)
+    source = sys.argv[1]
+    module_name = sys.argv[2]
+    class_name = sys.argv[3]
+    max_results = int(sys.argv[4]) if len(sys.argv) > 4 else 10
+
+    if not module_name or not class_name:
+        print("Module name and class name must be provided.")
+        sys.exit(-1)
+    if not os.path.exists(source):
+        if module_name == "milvus_facade" and class_name == "MilvusFacade":
+            index = DynamicFacade('empty_indexer', 'EmptyIndexer').create(source)
+        else:
+            print("Source file or folder does not exist.")
+            sys.exit(-1)
+    elif os.path.isfile(source) and source.endswith('.pdf'):
+        index = DynamicFacade('indexer.pdf_indexer', 'PDFIndexer').create(source)
+    elif os.path.isdir(source):
+        index = DynamicFacade('indexer.folder_indexer', 'FolderIndexer').create(source)
+    else:
+        print("Source must be a PDF file or a folder containing text files.")
+        sys.exit(-1)
+    search = DynamicFacade(module_name, class_name).create(index)
     llm = DynamicFacade('llm.ollama_facade', 'OllamaFacade').create("llama3.3")
-    HelloRagClient(search, llm).run()
+    HelloRagClient(search, llm, max_results).run()

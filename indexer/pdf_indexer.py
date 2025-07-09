@@ -1,3 +1,4 @@
+import os
 from pypdf import PdfReader
 from typing import Generator
 from indexer.indexer_facade import IndexerFacade
@@ -6,6 +7,7 @@ class PDFIndexer(IndexerFacade):
     def __init__(self, source: str):
         self._source = source
         self._title = source
+        self._collection_name = os.path.basename(source).replace(" ", "_").lower() + "_collection"
 
     def documents(self) -> Generator[str, None, None]:
         reader = PdfReader(self._source)
@@ -18,3 +20,9 @@ class PDFIndexer(IndexerFacade):
 
     def title(self) -> str:
         return self._title
+    
+    def collection_name(self) -> str:
+        return self._collection_name
+    
+    def is_empty(self) -> bool:
+        return not os.path.exists(self._source) or os.path.getsize(self._source) == 0
