@@ -75,7 +75,7 @@ if __name__ == "__main__":
         sys.exit(-1)
     if not os.path.exists(source):
         if module_name == "milvus_facade" and class_name == "MilvusFacade":
-            index = DynamicFacade('empty_indexer', 'EmptyIndexer').create(source)
+            index = DynamicFacade('indexer.empty_indexer', 'EmptyIndexer').create(source)
         else:
             print("Source file or folder does not exist.")
             sys.exit(-1)
