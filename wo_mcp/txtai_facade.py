@@ -1,12 +1,15 @@
+import logging
+
 from txtai import Embeddings
 from search_facade import SearchFacade
 from indexer.indexer_facade import IndexerFacade
 
 class TxtAiFacade(SearchFacade):
-    def __init__(self, indexer: IndexerFacade):
+    def __init__(self, logger: logging.Logger, indexer: IndexerFacade):
         self.embeddings = Embeddings(hybrid=True, path="sentence-transformers/nli-mpnet-base-v2")
         self.indexer = indexer
         self.data = []
+        self.logger = logger
 
     def add_pages(self) -> str:
         for doc in self.indexer.documents():

@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 import importlib
 import importlib.util
 from pathlib import Path
@@ -16,9 +17,10 @@ def import_from_path(module_name, file_path):
     return module
 
 class DynamicFacade:
-    def __init__(self, facade_module: str, facade_class: str):
+    def __init__(self, facade_module: str, facade_class: str, logger: logging.Logger):
         self.facade_module = facade_module
         self.facade_class = facade_class
+        self.logger = logger
 
     def create(self, ctor_arg = None):
         if '.' in self.facade_module:
@@ -27,15 +29,16 @@ class DynamicFacade:
             m = importlib.import_module(self.facade_module)
         c = getattr(m, self.facade_class)
         if ctor_arg is None:
-            rv = c()
+            rv = c(self.logger)
         else:
-            rv = c(ctor_arg)
+            rv = c(self.logger, ctor_arg)
         return rv
 
 class HelloRagClient:
-    def __init__(self, search: SearchFacade, llm: LargeLanguageModelFacade, max_results: int = 10):
+    def __init__(self, search: SearchFacade, llm: LargeLanguageModelFacade, logger: logging.Logger, max_results: int = 10):
         self._search = search
         self._llm = llm
+        self._logger = logger
         self._max_results = max_results
 
     def run(self, test_mode: bool = False) -> bool:
@@ -57,35 +60,45 @@ class HelloRagClient:
                     )
                 ranked_results.sort(key=lambda result: result["relevance"], reverse=True)
                 rr = ranked_results if len(ranked_results) <= self._max_results else ranked_results[:self._max_results]
-                print(self._llm.ask(question, [ r["result"] for r in rr ]))
-                question = input(f"Do you have another question to ask? ")
+                self._logger.info(f"Results for question '{question}': {rr}")
+                answer = self._llm.ask(question, [ r["result"] for r in rr ])
+                self._logger.info(f"Answer for question '{question}': {answer}")
+                print(answer)
+                question = input("Do you have another question to ask? ")
             return True
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("usage: python client.py source module_name class_name [max_results]")
+        print("usage: python client.py source module_name class_name [ log_file [max_results]]")
         sys.exit(-1)
     source = sys.argv[1]
     module_name = sys.argv[2]
     class_name = sys.argv[3]
-    max_results = int(sys.argv[4]) if len(sys.argv) > 4 else 10
+    log_file = sys.argv[4] if len(sys.argv) > 4 else None
+    max_results = int(sys.argv[5]) if len(sys.argv) > 5 else 10
+
+    if log_file:
+        logging.basicConfig(filename=log_file, level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('hello_rag_world')
 
     if not module_name or not class_name:
         print("Module name and class name must be provided.")
         sys.exit(-1)
     if not os.path.exists(source):
         if module_name == "milvus_facade" and class_name == "MilvusFacade":
-            index = DynamicFacade('indexer.empty_indexer', 'EmptyIndexer').create(source)
+            index = DynamicFacade('indexer.empty_indexer', 'EmptyIndexer', logger).create(source)
         else:
             print("Source file or folder does not exist.")
             sys.exit(-1)
     elif os.path.isfile(source) and source.endswith('.pdf'):
-        index = DynamicFacade('indexer.pdf_indexer', 'PDFIndexer').create(source)
+        index = DynamicFacade('indexer.pdf_indexer', 'PDFIndexer', logger).create(source)
     elif os.path.isdir(source):
-        index = DynamicFacade('indexer.folder_indexer', 'FolderIndexer').create(source)
+        index = DynamicFacade('indexer.folder_indexer', 'FolderIndexer', logger).create(source)
     else:
         print("Source must be a PDF file or a folder containing text files.")
         sys.exit(-1)
-    search = DynamicFacade(module_name, class_name).create(index)
-    llm = DynamicFacade('llm.ollama_facade', 'OllamaFacade').create("llama3.3")
-    HelloRagClient(search, llm, max_results).run()
+    search = DynamicFacade(module_name, class_name, logger).create(index)
+    llm = DynamicFacade('llm.ollama_facade', 'OllamaFacade', logger).create("llama3.3")
+    HelloRagClient(search, llm, logger, max_results).run()

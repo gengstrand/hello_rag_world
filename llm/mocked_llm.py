@@ -1,8 +1,9 @@
+import logging
 from llm.llm_facade import LargeLanguageModelFacade 
 
 class MockedLargeLanguageModel(LargeLanguageModelFacade):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
 
     def relevance(self, question: str, context: str) -> float:
         return sum(1 for word in question.split(' ') if word in context) / len(question.split(' '))

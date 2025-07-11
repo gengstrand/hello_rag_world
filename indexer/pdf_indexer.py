@@ -1,13 +1,15 @@
 import os
+import logging
 from pypdf import PdfReader
 from typing import Generator
 from indexer.indexer_facade import IndexerFacade
 
 class PDFIndexer(IndexerFacade):
-    def __init__(self, source: str):
+    def __init__(self, logger: logging.Logger, source: str):
         self._source = source
         self._title = source
         self._collection_name = os.path.basename(source).replace(" ", "_").lower() + "_collection"
+        self._logger = logger
 
     def documents(self) -> Generator[str, None, None]:
         reader = PdfReader(self._source)

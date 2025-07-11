@@ -1,3 +1,4 @@
+import logging
 import itertools
 
 from pymilvus import MilvusClient
@@ -18,12 +19,15 @@ def batch_iterator(iterable, n):
         yield batch
 
 class MilvusFacade(SearchFacade):
-    def __init__(self, indexer: IndexerFacade):
+    def __init__(self, logger: logging.Logger, indexer: IndexerFacade):
         self.indexer = indexer
+        self.logger = logger
         db_name = "./milvus_docs.db"
         self.client = MilvusClient(db_name)
         if self.client.has_collection(self.indexer.collection_name()):
+            self.logger.info(f"collection {self.indexer.collection_name} found")
             if not self.indexer.is_empty():
+                self.logger.info(f"resetting collection {self.indexer.collection_name}")
                 self.client.drop_collection(self.indexer.collection_name())
                 self.client.create_collection(
                     collection_name=self.indexer.collection_name(),
@@ -32,6 +36,7 @@ class MilvusFacade(SearchFacade):
                     consistency_level="Strong"
                 )
         else:
+            self.logger.info(f"collection {self.indexer.collection_name} not found so creating empty")
             self.client.create_collection(
                 collection_name=self.indexer.collection_name(),
                 dimension=768,

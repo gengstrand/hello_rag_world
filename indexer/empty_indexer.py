@@ -1,8 +1,11 @@
+import logging
 from typing import Generator
 from indexer.indexer_facade import IndexerFacade
 
 class EmptyIndexer(IndexerFacade):
-    def __init__(self, source: str = "empty"):
+    def __init__(self, logger: logging.Logger, source: str = "empty"):
+        self._logger = logger
+        self._source = source
         self._source = source
 
     def documents(self) -> Generator[str, None, None]:
