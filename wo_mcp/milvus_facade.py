@@ -25,9 +25,9 @@ class MilvusFacade(SearchFacade):
         db_name = "./milvus_docs.db"
         self.client = MilvusClient(db_name)
         if self.client.has_collection(self.indexer.collection_name()):
-            self.logger.info(f"collection {self.indexer.collection_name} found")
+            self.logger.info(f"collection {self.indexer.collection_name()} found")
             if not self.indexer.is_empty():
-                self.logger.info(f"resetting collection {self.indexer.collection_name}")
+                self.logger.info(f"resetting collection {self.indexer.collection_name()}")
                 self.client.drop_collection(self.indexer.collection_name())
                 self.client.create_collection(
                     collection_name=self.indexer.collection_name(),
@@ -36,7 +36,8 @@ class MilvusFacade(SearchFacade):
                     consistency_level="Strong"
                 )
         else:
-            self.logger.info(f"collection {self.indexer.collection_name} not found so creating empty")
+            self.logger.info(f"found collections {self.client.list_collections()}")
+            self.logger.info(f"collection {self.indexer.collection_name()} not found so creating empty")
             self.client.create_collection(
                 collection_name=self.indexer.collection_name(),
                 dimension=768,

@@ -1,4 +1,6 @@
 pypdf == 5.5.0
+flair == 0.15.1
+nltk == 3.9.1
 txtai == 8.5.0
 pymilvus == 2.5.9
 langchain-ollama == 0.3.3

@@ -20,6 +20,8 @@ rag/bin/pip install pymilvus
 rag/bin/pip install mcp
 rag/bin/pip install langchain-ollama
 rag/bin/pip install sentence-transformers
+rag/bin/pip install flair
+rag/bin/pip install nltk
 cd w_mcp
 ../rag/bin/python client.py ../st1.pdf txtai_server.py
 Who was Nancy to Dr. McCoy?
