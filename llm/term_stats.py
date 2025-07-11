@@ -13,7 +13,7 @@ def proper_nouns(text: str, min_score: int) -> list[str]:
     rv = []
     for label in labels:
         if label.value == 'NNP' and label.score >= min_score:
-            rv.append(label.text.lower())
+            rv.append(label.data_point.text.lower())
     return rv
 
 class TermStats:
